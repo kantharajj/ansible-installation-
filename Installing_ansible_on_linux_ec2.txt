@@ -1,0 +1,194 @@
+Installating Ansible  on Amazon Linux 
+ 
+1.connect to ec2 instance 
+2.Run command
+  sudo su
+3.yum update
+4.wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+5.yum install epel-release-latest-7.noarch.rpm
+6.yum update
+7.yum install python python-devel python-pip openssl ansible
+8. sudo amazon-linux-extras install ansible2
+9.ansible --version
+
+Configure Ansible on Amazon Linux
+
+1.Create 3 instanceS on AWS using linux AMI with the name Master,Node1,Node2 respectively
+  
+  Install the ansible in all the instance by following the above steps
+
+2.Now create an user in the all three instances with the same name and secure by giving the password
+   
+      adduser <username> ----> Creating the user
+      passwd  <username> ----> Creating password for the user
+
+  After creating the user in all the three instances then only you go for step 3 
+
+3.Now go to the master instance,
+    
+   > nano /etc/ansible/hosts  (or)  vi /etc/ansible/hosts
+
+      >>Edit the file in the below mentioned way by creating the group and adding hosts(node1,node2) private ips 
+       
+       # Ex 2: A collection of hosts belonging to the 'webservers' group
+          [<Group name>]
+          <Node1 private ip>
+          <Node2 private ip>
+          
+         ## [webservers]
+         ## alpha.example.org
+         ## beta.example.org 
+         ## 192.168.1.100
+         ## 192.168.1.110
+
+4. In the master instance again,
+
+    > nano /etc/ansible/ansible.cfg   (or) vi /etc/ansible/ansible.cfg
+   
+      >>Edit the file in the below mention way by removing the '#' and addig '#'
+  
+           inventory= /etc/ansible/hosts ------------------------------>remove the #
+         #library        = /usr/share/my_modules/
+         #module_utils   = /usr/share/my_module_utils/
+         #remote_tmp     = ~/.ansible/tmp
+         #local_tmp      = ~/.ansible/tmp 
+         #plugin_filters_cfg = /etc/ansible/plugin_filters.yml
+         #forks          = 5
+         #poll_interval  = 15
+           sudo_user= root------------------------------------------>remove the #
+         #ask_sudo_pass = True
+         #ask_pass      = True
+         #transport      = smart
+         #remote_port    = 22
+         #module_lang    = C
+         #module_set_locale = False
+         
+         save and exit
+
+5. after completing next in master run the command
+    
+   > visudo
+     
+     >>File will be displayed edit the file adding the below mentioned way
+  
+        ## Allow root to run any commands anywhere 
+        root    ALL=(ALL)ALL
+        <username> ALL=(ALL ALL) ALL ----------------------------------------> add this line in the file
+       
+       save and exit
+
+6.Go to user that is already created in master by the command
+          
+   > su - <username>
+   >Enter the password:
+   
+7.Now you are in the user now you have to connect the Node1 and Node2 to the master instance for that we have command   
+ 
+   > ssh <private ip of the Node1>
+
+     Are you sure you want to continue connecting (yes/no)? yes  
+     Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+
+    HERE you are getting ERROR couldn't connect to the host to resolve this follow the below steps:
+   
+    >exit from the user
+
+    >nano /etc/ssh/sshd_config
+
+      >> now edit the file in the below mentioned way 
+   
+         #LoginGraceTime 2m
+           PermitRootLogin yes------------------------> remove the # here  
+         #StrictModes yes
+         #MaxAuthTries 6
+         #MaxSessions 10
+
+         
+           PasswordAuthentication yes---------------------->remove the # here
+         #PermitEmptyPasswords no
+         #PasswordAuthentication no----------------------->add # here
+
+     save and exit
+
+    this steps should be done in all the nodes also 
+-----------------------------------------------------------------------------------------------------
+NOTE:
+    after this,in the root ec2-user
+    
+    >cd /etc/ssh/
+
+      >> restart sshd service by typing the command
+       
+          >service sshd restart  
+
+This step should be done in all the nodes
+
+-------------------------------------------------------------------------------------------------------
+
+8.Now try to connect to the nodes using the command in the user
+
+   > su - <username>
+   > ssh <Node1 instance private ip>
+   > Enter the password:
+
+Now you have connected to the Node in the master instance
+
+create one file 
+     
+        >touch a.txt
+
+Now connect Node1 instance 
+
+        >su - <username>
+        >Enter the password:
+        >ls
+          a.txt
+the file created in master it is also created in the Node1
+
+
+Do STEP7 AND STEP8 for Node2 also 
+
+Now see everytime we are connecting to the different nodes in master we have to enter the password everytime so now we have to configure that for that follow 
+the below steps 
+
+  login to the user in master enter the command
+        
+            > ssh-keygen
+              Generating public/private rsa key pair.
+              Enter file in which to save the key (/home/ratha/.ssh/id_rsa):    
+              Enter passphrase (empty for no passphrase): 
+              Enter same passphrase again: 
+              Your identification has been saved in /home/ratha/.ssh/id_rsa.
+              Your public key has been saved in /home/ratha/.ssh/id_rsa.pub.
+              The key fingerprint is:
+              SHA256:u0ehELSk2L5ug9pPikHJssoKYm5BQA7Di8N8P3U8UUE ratha@ip-172-31-4-224.ap-south-1.compute.internal
+              The key's randomart image is:
+              +---[RSA 2048]----+
+              |=.   .o   oE.    |
+              |+o o o.. .       |
+              |=.o o ... .      |
+              |+=.o  .. +.      |
+              |o=. o ..S...     |
+              |oo   +  ...      |
+              |=...o . ..       |
+              |B=.+o    ..      |
+              |B+ooo.  ..       |
+              +----[SHA256]-----+
+
+            > ls -a
+             
+              You will see one hidden file .ssh
+
+            > cd .ssh
+
+            > ssh-copy-id <group_name>@<Node1 ip adderss>
+           
+            > ssh <Node1 privatip>
+
+            >it will connect directly
+
+These steps from 7 should be done in all i.e..,master,Node1,Node2  
+
+
+
+ 
